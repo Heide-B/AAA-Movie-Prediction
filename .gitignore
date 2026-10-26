@@ -3,3 +3,5 @@
 .env
 .core*
 /aaa-movie-prediction/.venv/
+**/__pycache__/
+*.py[cod]
