@@ -84,9 +84,12 @@ jobs:
         with:
           context: ./aaa_movie_prediction
           file: aaa_movie_prediction/Dockerfile
-          tags: aaa-movie-prediction:ci
+          tags: aaa_movie_prediction:ci
           push: false
           load: true
+
+      - name: Verify Docker image
+        run: docker image inspect aaa_movie_prediction:ci
 
       - name: Start container
         run: |
