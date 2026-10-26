@@ -32,20 +32,46 @@ jobs:
       - name: Install pytest
         run: python -m pip install pytest
 
-      - name: Install dependencies
+      - name: Install project from pyproject.toml
         run: |
-          if [ -f requirements.txt ]; then
-            python -m pip install -r requirements.txt
+          if [ ! -f pyproject.toml ]; then
+            echo "ERROR: pyproject.toml not found."
+            exit 1
           fi
-          
-          if [ -f pyproject.toml ]; then
-            python -m pip install -e .
-          fi
+
+          python -m pip install -e .
+
+      - name: Verify pyproject.toml installation
+        run: |
+          python - <<'PY'
+          import tomllib
+          from importlib.metadata import distribution
+
+          with open("pyproject.toml", "rb") as f:
+              config = tomllib.load(f)
+
+          project_name = config["project"]["name"]
+          installed = distribution(project_name)
+
+          print(f"SUCCESS: {installed.metadata['Name']} is installed.")
+          print(f"Installed version: {installed.version}")
+          print(f"Declared dependencies: {len(config['project'].get('dependencies', []))}")
+          PY
+
+          python -m pip check
+
+      - name: Verify application dependencies
+        run: |
+          python -c "import fastapi; print('FastAPI:', fastapi.__version__)"
+          python -c "import uvicorn; print('Uvicorn imported successfully')"
+
+      - name: Run tests
+        run: python -m pytest -v
 
       - name: Analyze Dockerfile with Hadolint
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: Dockerfile
+          dockerfile: aaa_movie_prediction/Dockerfile
           failure-threshold: warning
 
       - name: Set up Docker Buildx
@@ -55,7 +81,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile
+          file: aaa_movie_prediction/Dockerfile
           tags: aaa_movie_prediction:ci
           push: false
           load: true
