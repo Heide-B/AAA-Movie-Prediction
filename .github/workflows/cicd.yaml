@@ -10,6 +10,9 @@ on:
 
 permissions:
   contents: read
+defaults:
+  run:
+    working-directory: aaa_movie_prediction
 
 jobs:
   test-analyze-build:
@@ -23,8 +26,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
+          cache-dependency-path: aaa_movie_prediction/pyproject.toml
 
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
@@ -32,41 +36,48 @@ jobs:
       - name: Install pytest
         run: python -m pip install pytest
 
-      - name: Install project from pyproject.toml
+      - name: Install requirements.txt dependencies
         run: |
-          if [ ! -f aaa_movie_prediction/pyproject.toml ]; then
-            echo "ERROR: pyproject.toml not found."
-            exit 1
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
           fi
 
+      - name: Install project from pyproject.toml
+        run: |
+          test -f pyproject.toml || {
+            echo "ERROR: pyproject.toml not found."
+            exit 1
+          }
           python -m pip install -e .
 
-      - name: Verify pyproject.toml installation
+      - name: Verify project installation
         run: |
           python - <<'PY'
           import tomllib
           from importlib.metadata import distribution
-
+          
           with open("pyproject.toml", "rb") as f:
               config = tomllib.load(f)
-
+          
           project_name = config["project"]["name"]
           installed = distribution(project_name)
-
-          print(f"SUCCESS: {installed.metadata['Name']} is installed.")
-          print(f"Installed version: {installed.version}")
-          print(f"Declared dependencies: {len(config['project'].get('dependencies', []))}")
+          
+          print(f"SUCCESS: {installed.metadata['Name']} {installed.version} is installed.")
+          print("Declared dependencies:", config["project"].get("dependencies", []))
           PY
-
           python -m pip check
-
-      - name: Verify application dependencies
-        run: |
-          python -c "import fastapi; print('FastAPI:', fastapi.__version__)"
-          python -c "import uvicorn; print('Uvicorn imported successfully')"
 
       - name: Run tests
         run: python -m pytest -v
+
+      - name: Analyze Dockerfile with Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: aaa_movie_prediction/Dockerfile
+          failure-threshold: warning
+
+      - name: Verify Dockerfile exists
+        run: test -f aaa_movie_prediction/Dockerfile
 
       - name: Analyze Dockerfile with Hadolint
         uses: hadolint/hadolint-action@v3.1.0
@@ -80,9 +91,9 @@ jobs:
       - name: Build Docker image (no push)
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: aaa_movie_prediction/Dockerfile
-          tags: aaa_movie_prediction:ci
+          context: ./aaa_movie_prediction
+          file: ./aaa_movie_prediction/Dockerfile
+          tags: aaa-movie-prediction:ci
           push: false
           load: true
 
