@@ -34,7 +34,7 @@ jobs:
 
       - name: Install project from pyproject.toml
         run: |
-          if [ ! -f pyproject.toml ]; then
+          if [ ! -f aaa_movie_prediction/pyproject.toml ]; then
             echo "ERROR: pyproject.toml not found."
             exit 1
           fi
