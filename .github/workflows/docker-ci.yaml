@@ -1,0 +1,79 @@
+
+name: Docker CI
+
+on:
+  workflow_run:
+    workflows: ["Pytest CI"]
+    types: [completed]
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze-build-test:
+    name: Analyze and build Docker image
+    # Run only when the upstream pytest workflow succeeds.
+    if: >-
+      ${{
+        github.event_name == 'workflow_dispatch' ||
+        github.event.workflow_run.conclusion == 'success'
+      }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Use the exact commit tested by the upstream workflow.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Analyze Dockerfile with Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: warning
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: aaa-movie-prediction:ci
+          push: false
+          load: true
+
+      - name: Start container
+        run: |
+          docker run -d \
+            --name movie-api-test \
+            -p 8000:8000 \
+            aaa-movie-prediction:ci
+
+      - name: Smoke test FastAPI
+        run: |
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://localhost:8000/docs > /dev/null; then
+              echo "FastAPI is responding."
+              exit 0
+            fi
+
+            echo "Waiting for FastAPI to start... ($i/30)"
+            sleep 2
+          done
+
+          echo "FastAPI failed to start."
+          docker logs movie-api-test
+          exit 1
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs movie-api-test || true
+
+      - name: Clean up container
+        if: always()
+        run: docker rm -f movie-api-test || true
