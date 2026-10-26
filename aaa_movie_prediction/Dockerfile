@@ -11,7 +11,7 @@ COPY pyproject.toml ./
 COPY models/ ./models/
 COPY main.py ./
 
-RUN python -m pip install --upgrade pip \
+RUN python -m pip install --upgrade pip==25.3 \
     && python -m pip install .
 
 EXPOSE 8000
