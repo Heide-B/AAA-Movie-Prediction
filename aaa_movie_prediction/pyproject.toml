@@ -20,3 +20,8 @@ python_functions = ["test_*"]
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["models*"]
+exclude = ["citests*", "data*"]
