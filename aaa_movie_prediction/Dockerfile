@@ -9,7 +9,8 @@ WORKDIR /app
 
 COPY pyproject.toml ./
 COPY models/ ./models/
-COPY main.py ./
+COPY main.py run_recommender.py ./
+WORKDIR /app
 
 RUN python -m pip install --upgrade pip==25.3 \
     && python -m pip install .
