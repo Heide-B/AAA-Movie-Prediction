@@ -73,16 +73,16 @@ jobs:
       - name: Analyze Dockerfile with Hadolint
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: aaa_movie_prediction/Dockerfile
+          dockerfile: ./Dockerfile
           failure-threshold: warning
 
       - name: Verify Dockerfile exists
-        run: test -f aaa_movie_prediction/Dockerfile
+        run: test -f ./Dockerfile
 
       - name: Analyze Dockerfile with Hadolint
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: aaa_movie_prediction/Dockerfile
+          dockerfile: ./Dockerfile
           failure-threshold: warning
 
       - name: Set up Docker Buildx
@@ -92,7 +92,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./aaa_movie_prediction
-          file: ./aaa_movie_prediction/Dockerfile
+          file: ./Dockerfile
           tags: aaa-movie-prediction:ci
           push: false
           load: true
